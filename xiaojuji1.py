@@ -7,8 +7,8 @@ import random, sys, time, math, pygame
 from pygame.locals import *
 
 FPS = 30 # frames per second to update the screen
-WINWIDTH = 1100 # width of the program's window, in pixels
-WINHEIGHT = 500 # height in pixels
+WINWIDTH = 1120 # width of the program's window, in pixels
+WINHEIGHT = 530 # height in pixels
 HALF_WINWIDTH = int(WINWIDTH / 2)
 HALF_WINHEIGHT = int(WINHEIGHT / 2)
 
@@ -35,6 +35,12 @@ DIRCHANGEFREQ = 2    # % chance of direction change per frame
 LEFT = 'left'
 RIGHT = 'right'
 ANGLE = 90
+ROUTINE = [ ]
+
+routine = [ ]
+
+PLANE_ANGLE = [ ]
+PLANE = []
 def main():
     global FPSCLOCK, DISPLAYSURF, BGIMAGE , BASICFONT, L_SQUIR_IMG, GRASSIMAGES
 
@@ -48,9 +54,9 @@ def main():
     # load the image files
     L_SQUIR_IMG = pygame.image.load('xufeiji.png')
 
-    BGIMAGE = pygame.image.load('flippybackground.png')
+    BGIMAGE = pygame.image.load('flippybackground2.png')
     GRASSIMAGES = []
-    GRASSIMAGES.append( pygame.image.load('local3.png'))
+    GRASSIMAGES.append( pygame.image.load('local4.png'))
 
     while True:
         runGame()
@@ -79,6 +85,14 @@ def runGame():
                  'x': HALF_WINWIDTH,
                  'y': HALF_WINHEIGHT,
                  'health': MAXHEALTH,
+                 'ANGLE': ANGLE}
+
+    PlaneObj = {'surface': pygame.transform.rotate(\
+        pygame.transform.scale(L_SQUIR_IMG, (STARTSIZE, STARTSIZE)), ANGLE),
+                 'facing': LEFT,
+                 'size': STARTSIZE,
+                 'x': HALF_WINWIDTH,
+                 'y': HALF_WINHEIGHT,
                  'ANGLE': ANGLE}
 
     moveLeft  = False
@@ -145,6 +159,8 @@ def runGame():
             print( tokenx, tokeny)
 
             if len(AccidentObj) == 0:
+                routine = [ ]
+                routine.append([tokenx, tokeny ])
                 AccidentObj.append(makeNewLocation( tokenx, tokeny ))
                 tokenx, tokeny = None, None
             else:
@@ -159,10 +175,16 @@ def runGame():
                         break
 
                 if i == len(AccidentObj):
-                    print('i == len(AccidentObj)' , i , len(AccidentObj))
                     print('add location')
+                    routine.append([tokenx, tokeny ])
+                    print('ro' , routine  )
                     AccidentObj.append(makeNewLocation( tokenx, tokeny ))      
                     i = 0
+
+                if len(routine) > 1:
+                    print('ro' , routine  )
+                    ROUTINE.append(routine)
+                    routine = [ ]
 
 
         tokenx, tokeny = None, None
@@ -173,37 +195,42 @@ def runGame():
             sObj['y'] += sObj['movey']
 
 
-
-        # adjust camerax and cameray if beyond the "camera slack"
-        playerCenterx = playerObj['x'] + int(playerObj['size'] / 2)
-        playerCentery = playerObj['y'] + int(playerObj['size'] / 2)
-        if (camerax + HALF_WINWIDTH) - playerCenterx > CAMERASLACK_X:
-            camerax = playerCenterx + CAMERASLACK_X - HALF_WINWIDTH
-        elif playerCenterx - (camerax + HALF_WINWIDTH) > CAMERASLACK_X:
-            camerax = playerCenterx - CAMERASLACK_X - HALF_WINWIDTH
-
-        if (cameray + HALF_WINHEIGHT) - playerCentery > CAMERASLACK_Y:
-            cameray = playerCentery + CAMERASLACK_Y - HALF_WINHEIGHT
-        elif playerCentery - (cameray + HALF_WINHEIGHT) > CAMERASLACK_Y:
-            cameray = playerCentery - CAMERASLACK_Y - HALF_WINHEIGHT
-
         # draw the green background
         DISPLAYSURF.blit(BGIMAGE, BGIMAGE.get_rect())
 
 
         for gObj in AccidentObj:
-            gRect = pygame.Rect( (gObj['x'] , # - camerax,
-                                  gObj['y'] ,#- cameray,
+            gRect = pygame.Rect( (gObj['x'] , 
+                                  gObj['y'] ,
                                   gObj['width'],
                                   gObj['height']) )
             # pygame.draw.rect(DISPLAYSURF, RED, (gObj['x'] ,gObj['y'] , gObj['width'], gObj['height']), 1)
 
             DISPLAYSURF.blit(GRASSIMAGES[gObj['grassImage']], gRect)
 
+        if len(ROUTINE) != 0:
+            for line in ROUTINE:
+                print(line)
+                x_p = abs( line[0][0]-line[0][1])
+                max_x = max( line[0][0] , line[0][1])
+
+                y_p = abs(line[1][0] -  line[1][1])
+                min_y = min(line[1][0] ,  line[1][1])
+
+                angle = math.tanh( x_p / y_p)
+                pygame.draw.line(DISPLAYSURF,RED,(line[0][0],line[0][1]) , (line[1][0], line[1][1] ) , 5)
+
+                PlaneObj['rect'] = pygame.Rect( ( max_x - x_p/2 ,
+                                              min_y + y_p/2  ,
+                                              PlaneObj['size'],
+                                              PlaneObj['size']) )
+                PlaneObj['ANGLE'] = 90
+                DISPLAYSURF.blit(PlaneObj['surface'], PlaneObj['rect'])
+
         # draw the player squirrel
 
-        playerObj['rect'] = pygame.Rect( (playerObj['x'] - camerax,
-                                              playerObj['y'] - cameray ,
+        playerObj['rect'] = pygame.Rect( (playerObj['x']  ,
+                                              playerObj['y']  ,
                                               playerObj['size'],
                                               playerObj['size']) )
         DISPLAYSURF.blit(playerObj['surface'], playerObj['rect'])
